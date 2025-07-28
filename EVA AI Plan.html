@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EVA AI Roadmap - Interactive Gantt Chart</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .eva-logo {
+            width: 120px;
+            height: 40px;
+            margin: 0 auto 24px;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+        
+        .plan-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 32px;
+            gap: 4px;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 6px;
+            border-radius: 16px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            backdrop-filter: blur(20px);
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .toggle-btn {
+            padding: 12px 32px;
+            background: transparent;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            font-size: 1rem;
+            color: #94a3b8;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .toggle-btn.active {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+        }
+        
+        .plan-section {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 32px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            backdrop-filter: blur(20px);
+            display: none;
+        }
+        
+        .plan-section.active {
+            display: block;
+            animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .plan-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #f8fafc;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        
+        .monthly-section {
+            margin-bottom: 40px;
+        }
+        
+        .month-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #3b82f6;
+            margin-bottom: 20px;
+            padding: 16px 24px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 12px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .gantt-container {
+            overflow-x: auto;
+            margin-bottom: 32px;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .gantt-chart {
+            min-width: 1000px;
+            border-collapse: collapse;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .gantt-chart th,
+        .gantt-chart td {
+            border: 1px solid rgba(59, 130, 246, 0.1);
+            padding: 12px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .gantt-chart th {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: #f8fafc;
+            font-weight: 700;
+            font-size: 0.9rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .gantt-chart .feature-name {
+            text-align: left;
+            max-width: 320px;
+            font-weight: 600;
+            background: rgba(30, 41, 59, 0.9);
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+        
+        .gantt-chart .sprint-header {
+            min-width: 120px;
+            font-size: 0.8rem;
+        }
+        
+        .task-bar {
+            width: 100%;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .task-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .task-bar:hover::before {
+            left: 100%;
+        }
+        
+        .task-bar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px -8px rgba(59, 130, 246, 0.6);
+        }
+        
+        .current-sprint {
+            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+        
+        .planned-task {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+            50% { opacity: 0.8; box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); }
+            100% { opacity: 1; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+        }
+        
+        .milestone {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(29, 78, 216, 0.2));
+            border: 2px solid #3b82f6;
+            padding: 24px;
+            border-radius: 16px;
+            margin: 24px 0;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .milestone h3 {
+            font-size: 1.4rem;
+            color: #3b82f6;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        
+        .milestone p {
+            color: #cbd5e1;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 32px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .legend-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+        }
+        
+        .objectives {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+        
+        .objective-card {
+            background: rgba(15, 23, 42, 0.8);
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .objective-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+        
+        .objective-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .objective-card h4 {
+            color: #3b82f6;
+            margin-bottom: 12px;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        
+        .objective-card p {
+            color: #cbd5e1;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .plan-toggle {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .toggle-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://eva.guru/wp-content/themes/evacommerce/assets/img/logo.svg" alt="EVA Logo" class="eva-logo">
+            <h1>EVA AI Roadmap</h1>
+            <p>Strategic Development Timeline for Enhanced Advertising Intelligence</p>
+        </div>
+        
+        <div class="plan-toggle">
+            <button class="toggle-btn active" onclick="showPlan('short-term')">Short-Term Plan (5 Sprints)</button>
+            <button class="toggle-btn" onclick="showPlan('long-term')">Long-Term Plan (Full Year)</button>
+        </div>
+        
+        <!-- Short-Term Plan -->
+        <div id="short-term" class="plan-section active">
+            <h2 class="plan-title">Short-Term Plan: First 5 Sprints (Until 9/9)</h2>
+            
+            <div class="gantt-container">
+                <table class="gantt-chart">
+                    <thead>
+                        <tr>
+                            <th class="feature-name">Feature</th>
+                            <th class="sprint-header">Sprint 2<br>7/15-7/29</th>
+                            <th class="sprint-header">Sprint 3<br>7/29-8/12</th>
+                            <th class="sprint-header">Sprint 4<br>8/12-8/26</th>
+                            <th class="sprint-header">Sprint 5<br>8/26-9/9</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="feature-name">Manual Changes & Optimization Shifts</td>
+                            <td><div class="task-bar current-sprint"></div></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Campaign List Expansions & Updates</td>
+                            <td><div class="task-bar current-sprint"></div></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Campaign Detail Page Simple View</td>
+                            <td><div class="task-bar current-sprint"></div></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Setting Ad Goals at Campaign Level</td>
+                            <td><div class="task-bar current-sprint"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Custom ACC Optimizations</td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Keyword Targeting Implementation</td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Campaign View & Analytics</td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">No Action Optimization - Goal</td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Product Level Goal Removal</td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">SKU Level Pricing Goals</td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">ASIN Level Pricing Improvements</td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Product Targeting Implementation</td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Automatic Targeting Implementation</td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Category Targeting Implementation</td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Authentication for Self Service</td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="objectives">
+                <div class="objective-card">
+                    <h4>Sprint 2 Completion (7/29)</h4>
+                    <p>Campaign-level goal setting will be fully implemented, enabling precise targeting and optimization at the campaign level.</p>
+                </div>
+                <div class="objective-card">
+                    <h4>Sprint 3 Achievement (8/12)</h4>
+                    <p>50% efficiency improvement in manual processes through automated optimization and streamlined workflows.</p>
+                </div>
+                <div class="objective-card">
+                    <h4>Sprint 4 Foundation (8/26)</h4>
+                    <p>Core infrastructure and targeting foundations established, providing robust base for advanced features.</p>
+                </div>
+                <div class="objective-card">
+                    <h4>Sprint 5 Competitive Edge (9/9)</h4>
+                    <p>Product reaches competitive market position with comprehensive targeting capabilities and self-service authentication.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Long-Term Plan -->
+        <div id="long-term" class="plan-section">
+            <h2 class="plan-title">Long-Term Plan: Full Year Development</h2>
+            
+            <div class="gantt-container">
+                <table class="gantt-chart">
+                    <thead>
+                        <tr>
+                            <th class="feature-name">Feature</th>
+                            <th class="sprint-header">September<br></th>
+                            <th class="sprint-header">October<br></th>
+                            <th class="sprint-header">November<br></th>
+                            <th class="sprint-header">December<br></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="feature-name">SQP in ACC</td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                            <td></td>
+                            <td></td> 
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Revert Mechanism for AI Decisions</td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Reusable Optimizations</td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Dayparting at Store Level</td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Dayparting at Product Level</td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Dayparting at Campaign Level</td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Trend Analytics for Vendors</td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Search Terms View & Analytics</td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">SQPR View (Keyword Insights)</td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">XMind Review & Analysis</td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Revive Rules</td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Vendor Store Level Optimization</td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">ACC with Opportunity Explorer</td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Keyword Rank Tracking</td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Time Machine for AI Decision</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Private Label Pricing Goals</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Vendor Campaign Level Optimization</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Vendor Advertising AI Decisions</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Vendor Advertising Reports</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Vendor Advertising ACC</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td><div class="task-bar planned-task"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="milestone">
+                <h3>🎯 Year-End Milestone: Complete EVA AI Platform</h3>
+                <p>At the end of the year, EVA AI will be a comprehensive advertising intelligence platform with advanced vendor capabilities, custom optimizations, and complete campaign management suite.</p>
+            </div>
+            
+            <div class="objectives">
+                <div class="objective-card">
+                    <h4>Q3 Focus (Sep-Oct)</h4>
+                    <p>Advanced dayparting capabilities across all levels and enhanced AI decision-making with revert mechanisms.</p>
+                </div>
+                <div class="objective-card">
+                    <h4>Q4 Expansion (Nov-Dec)</h4>
+                    <p>Vendor-focused features, comprehensive analytics, and opportunity exploration tools for complete market coverage.</p>
+                </div>
+                <div class="objective-card">
+                    <h4>Advanced Restore Mechanism</h4>
+                    <p>Time machine functionality and advanced AI decisions providing unprecedented campaign optimization insights.</p>
+                </div>
+                <div class="objective-card">
+                    <h4>Market Position</h4>
+                    <p>Industry-leading keyword rank tracking and comprehensive vendor advertising solutions.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color current-sprint"></div>
+                <span>Current Sprint (In Progress)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color planned-task"></div>
+                <span>Planned Development</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showPlan(planType) {
+            // Hide all plan sections
+            document.querySelectorAll('.plan-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected plan
+            document.getElementById(planType).classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+        
+        // Add hover effects to task bars
+        document.querySelectorAll('.task-bar').forEach(bar => {
+            bar.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.05)';
+                this.style.zIndex = '100';
+            });
+            
+            bar.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+                this.style.zIndex = 'auto';
+            });
+        });
+        
+        // Initialize with short-term plan
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ensure short-term plan is shown by default
+            document.getElementById('short-term').classList.add('active');
+            document.querySelector('.toggle-btn').classList.add('active');
+        });
+    </script>
+</body>
+</html>
